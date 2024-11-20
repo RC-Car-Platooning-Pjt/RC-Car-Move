@@ -1,0 +1,12 @@
+{
+    "NAME" : "CAR1",
+    "IP" : "70.12.107.175",
+    "PORT" : 1883,
+    "DASHPUB" : "text",
+    "TOPIC" : "RCCAR/1",
+    "leftv" : 200,
+    "rightv" : 800,
+    "minsp" : 0,
+    "maxsp" : 255,
+    "deadzone" : 0.05
+}

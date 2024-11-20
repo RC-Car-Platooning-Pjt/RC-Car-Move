@@ -4,6 +4,20 @@ import paho.mqtt.client as mqtt
 import json
 from functools import partial
 
+
+data = ""
+
+try:
+    with open('basedata.json', 'r', encoding='utf-8') as f:
+        data = f.read()
+except FileNotFoundError:
+    print("파일을 찾을 수 없습니다.")
+except PermissionError:
+    print("파일을 읽을 권한이 없습니다.")
+except:
+    print("파일을 읽는 중 오류가 발생했습니다.")
+
+
 # 모터 초기설정
 mh = Raspi_MotorHAT(addr=0x6f)
 motor1 = mh.getMotor(2)
@@ -14,13 +28,13 @@ motor1.setSpeed(speed)
 servo = mh._pwm
 servo.setPWMFreq(60)
 servoCH = 0
-SERVO_PULSE_MAX = 800
-SERVO_PULSE_MIN = 200
+SERVO_PULSE_MAX = data["rightv"]
+SERVO_PULSE_MIN = data["leftv"]
 
 # MQTT 설정
-MQTT_BROKER = "IP"
-MQTT_PORT = 1883
-MQTT_TOPIC = "RCCAR"
+MQTT_BROKER = data["IP"]
+MQTT_PORT = data["PORT"]
+MQTT_TOPIC = data["TOPIC"]
 
 # 제어 함수들
 def go():
@@ -57,11 +71,11 @@ def control_car(x, y):
     y: -1 (후진) ~ 1 (전진)
     """
     global speed  # 전역 변수 speed 사용
-    
+    global data
     # 설정값
-    MIN_SPEED = 0
-    MAX_SPEED = 255
-    DEADZONE = 0.15
+    MIN_SPEED = data["minsp"]
+    MAX_SPEED = data["maxsp"]
+    DEADZONE = data["deadzone"]
     MIN_ANGLE = -50
     MAX_ANGLE = 80
     
@@ -150,11 +164,14 @@ class MQTTController:
             # Connect to broker
             self.client.connect(MQTT_BROKER, MQTT_PORT, 60)
             
+            self.client.publish(data["DASHPUB"], "차량 " + data["NAME"] + " 연결됨")
+
             # Start MQTT loop in a separate thread
             self.client.loop_start()
             
             print("MQTT Controller started")
             
+
             # Keep the program running
             while True:
                 await asyncio.sleep(1)
@@ -163,6 +180,7 @@ class MQTTController:
             print(f"Error in MQTT Controller: {e}")
         finally:
             self.client.loop_stop()
+            self.client.publish(data["DASHPUB"], "차량 " + data["NAME"] + " 연결 해제됨")
             self.client.disconnect()
             motor1.run(Raspi_MotorHAT.RELEASE)
 

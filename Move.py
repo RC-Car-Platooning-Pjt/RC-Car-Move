@@ -9,14 +9,13 @@ data = ""
 
 try:
     with open('basedata.json', 'r', encoding='utf-8') as f:
-        data = f.read()
+        data = json.load(f)
 except FileNotFoundError:
     print("파일을 찾을 수 없습니다.")
 except PermissionError:
     print("파일을 읽을 권한이 없습니다.")
 except:
     print("파일을 읽는 중 오류가 발생했습니다.")
-
 
 # 모터 초기설정
 mh = Raspi_MotorHAT(addr=0x6f)
@@ -28,8 +27,8 @@ motor1.setSpeed(speed)
 servo = mh._pwm
 servo.setPWMFreq(60)
 servoCH = 0
-SERVO_PULSE_MAX = data["rightv"]
-SERVO_PULSE_MIN = data["leftv"]
+SERVO_PULSE_MAX = print(data["rightv"])
+SERVO_PULSE_MIN = int(data["leftv"])
 
 # MQTT 설정
 MQTT_BROKER = data["IP"]

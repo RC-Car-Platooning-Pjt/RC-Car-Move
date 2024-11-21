@@ -27,7 +27,7 @@ motor1.setSpeed(speed)
 servo = mh._pwm
 servo.setPWMFreq(60)
 servoCH = 0
-SERVO_PULSE_MAX = print(data["rightv"])
+SERVO_PULSE_MAX = int(data["rightv"])
 SERVO_PULSE_MIN = int(data["leftv"])
 
 # MQTT 설정
@@ -49,7 +49,7 @@ def speed_change(v):
     global speed
     motor1.setSpeed(v)
 
-def steer(angle=0):
+def steer(angle):
     if angle <= -60: angle = -60
     if angle >= 60: angle = 60
     pulse_time = SERVO_PULSE_MIN + (SERVO_PULSE_MAX - SERVO_PULSE_MIN) // 180 * (angle + 90)
@@ -64,7 +64,7 @@ def steer_left():
 def steer_center():
     steer(0)
 
-def control_car(x, y):
+def control_car(x, y, maxsp, dir):
     """
     x: -1 (왼쪽) ~ 1 (오른쪽)
     y: -1 (후진) ~ 1 (전진)
@@ -72,25 +72,25 @@ def control_car(x, y):
     global speed  # 전역 변수 speed 사용
     global data
     # 설정값
-    MIN_SPEED = data["minsp"]
-    MAX_SPEED = data["maxsp"]
+    MIN_SPEED = 0
+    MAX_SPEED = maxsp
     DEADZONE = data["deadzone"]
     MIN_ANGLE = -50
     MAX_ANGLE = 80
-    
+    speed_value = 0
+    angle = 0
     try:
-        # 데드존 체크
+        #데드존 체크
         if abs(float(x)) < DEADZONE and abs(float(y)) < DEADZONE:
             motor1.run(Raspi_MotorHAT.RELEASE)
             steer(0)
-            return
+            return 0
         
         # 속도 제어 (y축)
         if abs(float(y)) > DEADZONE:
             speed_value = int(abs(float(y)) * (MAX_SPEED - MIN_SPEED) + MIN_SPEED)
             speed_value = min(speed_value, MAX_SPEED)
             motor1.setSpeed(speed_value)
-            
             if float(y) > 0:
                 motor1.run(Raspi_MotorHAT.BACKWARD)
             else:
@@ -99,18 +99,23 @@ def control_car(x, y):
             motor1.run(Raspi_MotorHAT.RELEASE)
         
         # 회전 제어 (x축)
-        if abs(float(x)) > DEADZONE:
-            angle = float(x) * MAX_ANGLE
+        if not dir:
+            steer(0)
+            return speed_value
+        
+        if abs(x) > DEADZONE:
+            angle = x * MAX_ANGLE
             # 속도에 따른 회전 각도 조정
-            angle = angle * (1 - abs(float(y)) * 0.5)
+            angle = angle * (1 - abs(y) * 0.5)
             steer(int(angle))
         else:
             steer(0)
         
         print(f"Speed: {speed_value if abs(float(y)) > DEADZONE else 0}, Angle: {angle if abs(float(x)) > DEADZONE else 0}")
-        
+        return speed_value
     except Exception as e:
         print(f"제어 오류: {e}")
+        return 0
 
 def is_number(text):
     try:
@@ -118,9 +123,6 @@ def is_number(text):
         return True
     except ValueError:
         return False
-# 명령어 매핑
-command = ['left', 'right', 'up', 'down', 'stop']
-func = [steer_left, steer_right, go, back, stop]
 
 class MQTTController:
     def __init__(self):
@@ -138,18 +140,13 @@ class MQTTController:
     def on_message(self, client, userdata, msg):
         try:
             command_str = msg.payload.decode()
-            print(f"Received command: {command_str}")
-            
-            if is_number(command_str):
-                speed_change(int(command_str))
-            else:
-                if command_str == "stop":
-                    stop()
-                else:
-                    command_json = json.loads(command_str)
-                    x = command_json["x"]
-                    y = command_json["y"]
-                    control_car(x, y)
+            cmd = json.loads(command_str)
+            print(cmd)
+            if cmd['state'] == "stop":
+                stop()
+            elif cmd['state'] == "move":
+               result = control_car(cmd['x'], cmd['y'], cmd['maxsp'], cmd['dir'])
+               self.client.publish(data["TOPIC"] + "/speed", result)
         except Exception as e:
             print(f"Error processing message: {e}")
 

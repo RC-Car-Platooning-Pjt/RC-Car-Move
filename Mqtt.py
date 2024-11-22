@@ -57,9 +57,9 @@ class MQTTController:
             # Start MQTT loop in a separate thread
             self.client.loop_start()
             print("MQTT Controller started")
-            asyncio.create_task(MC.Ultra())
+            #asyncio.create_task(MC.Ultra())
             print("Distance Sensor started")
-            asyncio.create_task(V.start_streaming(self.client))
+            #asyncio.create_task(V.start_streaming(self.client))
             # Keep the program running
             while True:
                 await asyncio.sleep(1)

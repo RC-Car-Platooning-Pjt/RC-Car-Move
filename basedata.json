@@ -4,8 +4,8 @@
     "PORT" : 1883,
     "DASHPUB" : "text",
     "TOPIC" : "RCCAR/1",
-    "leftv" : 200,
-    "rightv" : 800,
+    "leftv" : 150,
+    "rightv" : 550,
     "deadzone" : 0.05,
     "ultralimit" : 0.3
 }

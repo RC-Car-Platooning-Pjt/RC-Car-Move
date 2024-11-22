@@ -6,5 +6,6 @@
     "TOPIC" : "RCCAR/1",
     "leftv" : 200,
     "rightv" : 800,
-    "deadzone" : 0.05
+    "deadzone" : 0.05,
+    "ultralimit" : 0.3
 }

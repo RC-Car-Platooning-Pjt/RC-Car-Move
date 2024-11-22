@@ -3,7 +3,7 @@ import asyncio
 import paho.mqtt.client as mqtt
 import json
 from functools import partial
-
+from gpiozero import DistanceSensor
 
 data = ""
 
@@ -30,6 +30,14 @@ servoCH = 0
 SERVO_PULSE_MAX = int(data["rightv"])
 SERVO_PULSE_MIN = int(data["leftv"])
 
+# 초음파 센서 초기 설정
+ultrasound = DistanceSensor(echo=15, trigger=14)
+distance = 10
+ultralimit = float(data["ultralimit"])
+glocmd = {
+    'state': "move",
+    'y' : 10
+}
 # MQTT 설정
 MQTT_BROKER = data["IP"]
 MQTT_PORT = data["PORT"]
@@ -92,7 +100,8 @@ def control_car(x, y, maxsp, dir):
             speed_value = min(speed_value, MAX_SPEED)
             motor1.setSpeed(speed_value)
             if float(y) > 0:
-                motor1.run(Raspi_MotorHAT.BACKWARD)
+                if distance > ultralimit:
+                    motor1.run(Raspi_MotorHAT.BACKWARD)
             else:
                 motor1.run(Raspi_MotorHAT.FORWARD)
         else:
@@ -134,19 +143,28 @@ class MQTTController:
         
     def on_connect(self, client, userdata, flags, rc):
         print(f"Connected to MQTT Broker with result code {rc}")
+        print()
         client.subscribe(MQTT_TOPIC)
         print(f"Subscribed to topic: {MQTT_TOPIC}")
 
     def on_message(self, client, userdata, msg):
+        global glocmd
         try:
             command_str = msg.payload.decode()
             cmd = json.loads(command_str)
+            glocmd = cmd
             print(cmd)
             if cmd['state'] == "stop":
                 stop()
             elif cmd['state'] == "move":
                result = control_car(cmd['x'], cmd['y'], cmd['maxsp'], cmd['dir'])
                self.client.publish(data["TOPIC"] + "/speed", result)
+            elif cmd['state'] == "pairing":
+                self.client.unsubscribe(MQTT_TOPIC)
+                self.client.subscribe(MQTT_TOPIC[0:-1] + str(cmd['masternum']))
+            elif cmd['state'] == "pairend":
+                self.client.unsubscribe(MQTT_TOPIC[0:-1] + str(cmd['masternum']))
+                self.client.subscribe(MQTT_TOPIC)
         except Exception as e:
             print(f"Error processing message: {e}")
 
@@ -155,18 +173,37 @@ class MQTTController:
         if rc != 0:
             print(f"Unexpected disconnect. Will auto-reconnect")
 
+    async def Ultra(self):
+        global distance
+        global glocmd
+        while True:
+            try:
+                distance = ultrasound.distance
+                if(distance < ultralimit):
+                    if glocmd['state']=="move" and glocmd['y'] > 0:
+                        stop()
+                        print("비상! 비상! 비상! 긴급정지!")
+                if distance is None:
+                    distance = 10
+                    print("초음파 센서 값을 읽을 수 없음.")
+            except GPIOzeroError as e:
+                print(f"GPIO 에러: {e}")
+            except Exception as e:
+                print(f"기타 에러: {e}")
+            await asyncio.sleep(0.1) 
+
     async def start(self):
         try:
             # Connect to broker
             self.client.connect(MQTT_BROKER, MQTT_PORT, 60)
-            
+            asyncio
             self.client.publish(data["DASHPUB"], "차량 " + data["NAME"] + " 연결됨")
 
             # Start MQTT loop in a separate thread
             self.client.loop_start()
-            
             print("MQTT Controller started")
-            
+            asyncio.create_task(self.Ultra())
+            print("Distance Sensor started")
 
             # Keep the program running
             while True:

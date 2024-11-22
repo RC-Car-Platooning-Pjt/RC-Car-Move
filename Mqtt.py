@@ -2,7 +2,7 @@ import asyncio
 import paho.mqtt.client as mqtt
 from Global_Var import G
 from Motor_Control import MC
-from Video import V
+#from Video import V
 import json
 MQTT_BROKER = G.data["IP"]
 MQTT_PORT = G.data["PORT"]

@@ -1,4 +1,4 @@
-from Raspi_MotorHAT import Raspi_MotorHAT, Raspi_DCMotor
+from base.Raspi_MotorHAT import Raspi_MotorHAT, Raspi_DCMotor
 from gpiozero import DistanceSensor
 from Global_Var import G
 import asyncio

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from Raspi_PWM_Servo_Driver import PWM
+from base.Raspi_PWM_Servo_Driver import PWM
 import time
 
 class Raspi_StepperMotor:

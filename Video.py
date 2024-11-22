@@ -3,7 +3,7 @@ import base64
 import asyncio
 from picamera2 import Picamera2
 from libcamera import Transform
-
+from Global_Var import G
 class VideoStreamer:
     def __init__(self):
         # Picamera2 초기화
@@ -15,9 +15,10 @@ class VideoStreamer:
         self.camera.start()
         
         # 프레임 전송 간격 (초)
-        self.interval = 0.1
+        self.interval = 0.2
         
-    async def start_streaming(self, client, topic):
+    async def start_streaming(self, client):
+        print(client)
         try:
             print("스트리밍 시작...")
             while True:
@@ -31,7 +32,7 @@ class VideoStreamer:
                 jpg_as_text = base64.b64encode(buffer).decode('utf-8')
                 
                 # MQTT로 전송
-                client.publish(self.topic, jpg_as_text)
+                client.publish(G.data["TOPIC"] + "/video", jpg_as_text)
                 
                 # 지정된 간격만큼 대기
                 await asyncio.sleep(self.interval)
@@ -49,4 +50,3 @@ class VideoStreamer:
 
 # 스트리머 객체 생성 및 시작
 V = VideoStreamer()
-V.start_streaming()

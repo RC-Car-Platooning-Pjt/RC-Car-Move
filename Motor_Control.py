@@ -104,6 +104,6 @@ class MotorController:
                 print(f"GPIO 에러: {e}")
             except Exception as e:
                 print(f"기타 에러: {e}")
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.3)
 
 MC = MotorController()

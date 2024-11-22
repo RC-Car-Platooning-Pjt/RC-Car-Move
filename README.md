@@ -19,6 +19,7 @@
     3. python Move.py -> systectl or bashrc 이용 자동 실행 예정
         : pub 및 sub 설정
     4. 이후 GUI 원격 조종기를 이용한 실시간 조종.
+    5. mqtt.py가 main임.
 
 
 ### 코드 변경 사항
@@ -31,3 +32,5 @@
         : 좌표 입력이 1초간 없을 경우 자동차 중지
     4. pairend 함수는 pairflag를 통해 현상태 확인
         : pairflag 1 : slave, 0 : master
+    5. 복잡한 코드를 줄이기 위한 모듈화 진행
+        : 전역변수를 관리하기 위한 싱글톤 패턴 진행, 센서(RC CAR), MQTT 통신, Video 4가지의 코드로 분리함. 

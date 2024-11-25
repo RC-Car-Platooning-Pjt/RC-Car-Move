@@ -5,10 +5,10 @@ from Motor_Control import MC
 from Video import V
 import json
 from FB import add_log
+MQTT_NAME = G.date["NAME"]
 MQTT_BROKER = G.data["IP"]
 MQTT_PORT = G.data["PORT"]
 MQTT_TOPIC = G.data["TOPIC"]
-add_log(MQTT_NAME, "Test Event")
 
 class MQTTController:
     def __init__(self):

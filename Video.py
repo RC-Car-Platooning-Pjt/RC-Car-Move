@@ -19,6 +19,7 @@ class VideoStreamer:
         
         # 프레임 전송 간격 (초)
         self.interval = 0.2
+
         
     async def start_streaming(self, client):
         try:
@@ -28,6 +29,12 @@ class VideoStreamer:
                 frame = self.camera.capture_array()
                 img = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
                 results = self.model(img)
+
+                df = results.pandas().xywh[0]
+                for index, row in df.iterrows():
+                    class_name = row['name']  # 클래스 이름
+                    confidence = row['confidence']  # 신뢰도
+
                 render_img = np.squeeze(results.render())
                 # OpenCV로 이미지를 JPEG로 인코딩
                 _, buffer = cv2.imencode('.jpg', render_img, [cv2.IMWRITE_JPEG_QUALITY, 50])

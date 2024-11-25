@@ -18,7 +18,7 @@ class VideoStreamer:
         self.camera.start()
         
         # 프레임 전송 간격 (초)
-        self.interval = 0.2
+        self.interval = 0.1
 
         
     async def start_streaming(self, client):
@@ -34,6 +34,8 @@ class VideoStreamer:
                 for index, row in df.iterrows():
                     class_name = row['name']  # 클래스 이름
                     confidence = row['confidence']  # 신뢰도
+                    if confidence > 0.8:
+                        client.publish(G.data["TOPIC"] + "/master", self.convert[class_name])
 
                 render_img = np.squeeze(results.render())
                 # OpenCV로 이미지를 JPEG로 인코딩

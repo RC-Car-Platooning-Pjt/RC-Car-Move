@@ -16,6 +16,11 @@ class VideoStreamer:
         self.camera.preview_configuration.transform = Transform(vflip=1, hflip=1)
         self.camera.configure("preview")
         self.camera.start()
+        self.convert = {
+            "one" : 1,
+            "two" : 2,
+            "three" : 3
+        }
         
         # 프레임 전송 간격 (초)
         self.interval = 0.1

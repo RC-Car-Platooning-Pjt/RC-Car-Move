@@ -2,12 +2,13 @@ import asyncio
 import paho.mqtt.client as mqtt
 from Global_Var import G
 from Motor_Control import MC
-#from Video import V
+from Video import V
 import json
+from FB import add_log
 MQTT_BROKER = G.data["IP"]
 MQTT_PORT = G.data["PORT"]
 MQTT_TOPIC = G.data["TOPIC"]
-
+add_log(MQTT_NAME, "Test Event")
 
 class MQTTController:
     def __init__(self):
@@ -21,6 +22,7 @@ class MQTTController:
         print(f"Connected to MQTT Broker with result code {rc}")
         print()
         client.subscribe(MQTT_TOPIC)
+        add_log(MQTT_NAME, "Started")
         print(f"Subscribed to topic: {MQTT_TOPIC}")
 
     def on_message(self, client, userdata, msg):
@@ -37,9 +39,11 @@ class MQTTController:
             elif cmd['state'] == "pairing":
                 self.client.unsubscribe(MQTT_TOPIC)
                 self.client.subscribe(MQTT_TOPIC[0:-1] + str(cmd['masternum']))
+                add_log(MQTT_NAME, "Paired on")
             elif cmd['state'] == "pairend":
                 self.client.unsubscribe(MQTT_TOPIC[0:-1] + str(cmd['masternum']))
                 self.client.subscribe(MQTT_TOPIC)
+                add_log(MQTT_NAME, "Paired off")
         except Exception as e:
             print(f"Error processing message: {e}")
 
@@ -57,9 +61,9 @@ class MQTTController:
             # Start MQTT loop in a separate thread
             self.client.loop_start()
             print("MQTT Controller started")
-            #asyncio.create_task(MC.Ultra())
+            asyncio.create_task(MC.Ultra())
             print("Distance Sensor started")
-            #asyncio.create_task(V.start_streaming(self.client))
+            asyncio.create_task(V.start_streaming(self.client))
             # Keep the program running
             while True:
                 await asyncio.sleep(1)
@@ -84,6 +88,7 @@ async def main():
         print(f'\nUnexpected error: {e}')
     finally:
         MC.stop()
+        add_log(MQTT_NAME, "Quit")
 
 if __name__ == '__main__':
     asyncio.run(main())

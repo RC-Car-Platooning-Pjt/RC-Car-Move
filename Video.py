@@ -1,12 +1,15 @@
 import cv2
+import torch
 import base64
 import asyncio
+import numpy as np
 from picamera2 import Picamera2
 from libcamera import Transform
 from Global_Var import G
 class VideoStreamer:
     def __init__(self):
         # Picamera2 초기화
+        self.model = torch.hub.load('ultralytics/yolov5', 'custom', path='RC4.pt')
         self.camera = Picamera2()
         self.camera.preview_configuration.main.size = (320, 240)  # 해상도 설정
         self.camera.preview_configuration.main.format = "RGB888"
@@ -18,15 +21,16 @@ class VideoStreamer:
         self.interval = 0.2
         
     async def start_streaming(self, client):
-        print(client)
         try:
             print("스트리밍 시작...")
             while True:
                 # 프레임 캡처
                 frame = self.camera.capture_array()
-                
+                img = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                results = self.model(img)
+                render_img = np.squeeze(results.render())
                 # OpenCV로 이미지를 JPEG로 인코딩
-                _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 50])
+                _, buffer = cv2.imencode('.jpg', render_img, [cv2.IMWRITE_JPEG_QUALITY, 50])
                 
                 # base64로 인코딩
                 jpg_as_text = base64.b64encode(buffer).decode('utf-8')
@@ -39,14 +43,14 @@ class VideoStreamer:
                 
         except KeyboardInterrupt:
             print("스트리밍 종료")
-            self.cleanup()
+            self.cleanup(client)
         except Exception as e:
             print(f"에러 발생: {str(e)}")
-            self.cleanup()
+            self.cleanup(client)
             
-    def cleanup(self):
+    def cleanup(self, client):
         self.camera.stop()
-        self.client.disconnect()
+        client.disconnect()
 
 # 스트리머 객체 생성 및 시작
 V = VideoStreamer()

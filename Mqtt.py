@@ -5,7 +5,11 @@ from Motor_Control import MC
 from Video import V
 import json
 from FB import add_log
-MQTT_NAME = G.date["NAME"]
+import warnings
+from queue import Queue
+from OpenAi import Ai 
+warnings.filterwarnings('ignore')
+MQTT_NAME = G.data["NAME"]
 MQTT_BROKER = G.data["IP"]
 MQTT_PORT = G.data["PORT"]
 MQTT_TOPIC = G.data["TOPIC"]
@@ -17,6 +21,9 @@ class MQTTController:
         self.client.on_message = self.on_message
         self.client.on_disconnect = self.on_disconnect
         self.loop = asyncio.get_event_loop()
+        self.master = -1
+        self.queue = Queue()
+        self.flag = False
         
     def on_connect(self, client, userdata, flags, rc):
         print(f"Connected to MQTT Broker with result code {rc}")
@@ -29,21 +36,51 @@ class MQTTController:
         try:
             command_str = msg.payload.decode()
             cmd = json.loads(command_str)
-            G.update_glocmd(cmd)
             print(cmd)
-            if cmd['state'] == "stop":
-                MC.stop()
-            elif cmd['state'] == "move":
-               result = MC.control_car(cmd['x'], cmd['y'], cmd['maxsp'], cmd['dir'])
-               self.client.publish(G.data["TOPIC"] + "/speed", result)
+            G.gptdata[cmd['state']]+=1
+            if cmd['state'] == "pairend":
+                self.client.unsubscribe(MQTT_TOPIC[0:-1] + str(self.master))
+                self.master = -1
+                self.flag = False
+                self.client.subscribe(MQTT_TOPIC)
+                self.queue = Queue()
+                add_log(MQTT_NAME, "Paired off")
             elif cmd['state'] == "pairing":
                 self.client.unsubscribe(MQTT_TOPIC)
-                self.client.subscribe(MQTT_TOPIC[0:-1] + str(cmd['masternum']))
+                self.master = cmd['masternum']
+                self.flag = True
+                self.client.subscribe(MQTT_TOPIC[0:-1] + str(self.master))
                 add_log(MQTT_NAME, "Paired on")
-            elif cmd['state'] == "pairend":
-                self.client.unsubscribe(MQTT_TOPIC[0:-1] + str(cmd['masternum']))
-                self.client.subscribe(MQTT_TOPIC)
-                add_log(MQTT_NAME, "Paired off")
+                self.queue = Queue()
+                value = G.distance / 0.1
+                print(G.distance)
+                initcmd = {
+                        "state" : "move",
+                        "maxsp" : 70,
+                        "y" : 1,
+                        "x" : 0,
+                        "dir" : 0,
+                        "masternum" : -1,
+                    }
+                for a in range(1,int(value)):
+                    self.queue.put(initcmd)
+                self.queue.put("pairmove")
+                MC.ledon()
+            else:
+                if self.flag:
+                    self.queue.put(cmd)
+                    cmd = self.queue.get()
+                    if(cmd == "pairmove"):
+                        MC.ledoff()
+                        cmd = self.queue.get()
+                    cmd['maxsp'] = cmd['maxsp'] / G.data["speed"]
+                if cmd['state'] == "stop":
+                    MC.stop()
+                elif cmd['state'] == "move":
+                    G.update_glocmd(cmd)
+                    result = MC.control_car(cmd['x'], cmd['y'], cmd['maxsp'], cmd['dir'])
+                    self.client.publish(G.data["TOPIC"] + "/speed", result)
+
         except Exception as e:
             print(f"Error processing message: {e}")
 
@@ -67,12 +104,17 @@ class MQTTController:
             # Keep the program running
             while True:
                 await asyncio.sleep(1)
-                
+        except KeyboardInterrupt:
+            print("MQTT 종료중")        
         except Exception as e:
             print(f"Error in MQTT Controller: {e}")
         finally:
             self.client.loop_stop()
             self.client.publish(G.data["DASHPUB"], "차량 " + G.data["NAME"] + " 연결 해제됨")
+            #GPT DATA를 전송하는 코드.
+            result = Ai.get_response()
+            print(result)
+            self.client.publish("GPT", G.data["NAME"] + ': '+ result)
             self.client.disconnect()
             MC.stop()
 
@@ -89,6 +131,7 @@ async def main():
     finally:
         MC.stop()
         add_log(MQTT_NAME, "Quit")
+        
 
 if __name__ == '__main__':
     asyncio.run(main())

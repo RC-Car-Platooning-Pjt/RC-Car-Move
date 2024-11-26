@@ -1,5 +1,6 @@
 from base.Raspi_MotorHAT import Raspi_MotorHAT, Raspi_DCMotor
 from gpiozero import DistanceSensor
+import RPi.GPIO as GPIO
 from Global_Var import G
 import asyncio
 class MotorController:
@@ -20,6 +21,15 @@ class MotorController:
         #초음파센서
         self.ultrasound = DistanceSensor(echo=15, trigger=14)
         self.ultralimit = float(G.data["ultralimit"])
+
+        #LED센서
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(17,GPIO.OUT)
+
+    def ledon(self):
+        GPIO.output(17,True)
+    def ledoff(self):
+        GPIO.output(17,False)
     
     #모터 함수
     def go(self):
@@ -96,6 +106,7 @@ class MotorController:
                     if G.glocmd['state']=="move" and G.glocmd['y'] > 0:
                         self.stop()
                         print("비상! 비상! 비상! 긴급정지!")
+                        G.gptdata['emergency']+=1
                 if distance is None:
                     distance = 10
                     G.update_distance(distance)
@@ -104,6 +115,6 @@ class MotorController:
                 print(f"GPIO 에러: {e}")
             except Exception as e:
                 print(f"기타 에러: {e}")
-            await asyncio.sleep(0.3)
+            await asyncio.sleep(0.5)
 
 MC = MotorController()

@@ -5,7 +5,8 @@
     "DASHPUB" : "text",
     "TOPIC" : "RCCAR/1",
     "leftv" : 150,
-    "rightv" : 550,
+    "rightv" : 600,
     "deadzone" : 0.05,
-    "ultralimit" : 0.3
+    "speed" : 1,
+    "ultralimit" : 0.2
 }

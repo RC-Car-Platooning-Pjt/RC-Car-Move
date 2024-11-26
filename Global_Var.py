@@ -16,6 +16,15 @@ class GlobalVars:
                 'y': 10
             }
             cls.instance.load_data()
+            cls.instance.gptdata = {
+                "move" : 0,
+                "left" : 0,
+                "straight" : 0,
+                "back" : 0,
+                "pairing" : 0,
+                "stop" : 0,
+                "emergency":0
+            }
         return cls.instance
 
     def load_data(self):

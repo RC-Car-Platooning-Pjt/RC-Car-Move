@@ -1,6 +1,5 @@
 # global_vars.py
 import json
-from Global_Var import G
 class GlobalVars:
     instance = None  # 클래스 변수로 인스턴스 저장
     

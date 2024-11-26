@@ -12,7 +12,9 @@ RATE = 16000
 CHUNK = int(RATE / 10)  # 100ms chunks
 
 class MicrophoneStream(object):
-    def __init__(self, rate, chunk):
+    global RATE
+    global CHUNK
+    def __init__(self, rate , chunk):
         self._rate = rate
         self._chunk = chunk
         self._buff = queue.Queue()
@@ -57,6 +59,21 @@ class MicrophoneStream(object):
                 except queue.Empty:
                     break
             yield b''.join(data)
+            
+class Voice:
+    async def run(self, client):
+        while True:
+            if (not G.pairflag) and G.voiceflag:
+                self.play_audio("스피커로 페어링 하시겠습니까?")
+                command = self.listen_for_command()
+                if command and "페어" in command:
+                    self.play_audio(" 페어링을 시작합니다.")
+                    # Bluetooth 페어링 로직을 추가할 수 있습니다.
+                    client.publish("RCCAR/2/sound", 1)
+                    G.voiceflag = False
+                else:
+                    self.play_audio("명령을 인식하지 못했습니다. 다시 시도해주세요.")
+            await asyncio.sleep(1)
 
     def play_audio(self,text):
         """텍스트를 음성으로 변환하고 재생"""
@@ -104,18 +121,5 @@ class MicrophoneStream(object):
                 transcript = result.alternatives[0].transcript.strip()
                 print(f"Recognized: {transcript}")
                 return transcript
-    async def run(self, client):
-        while True:
-            if (not G.pairflag) and G.voiceflag:
-                self.play_audio("스피커로 페어링 하시겠습니까?")
-                command = self.listen_for_command()
-                if command and "페어" in command:
-                    self.play_audio(" 페어링을 시작합니다.")
-                    # Bluetooth 페어링 로직을 추가할 수 있습니다.
-                    client.publish("RCCAR/2/sound", 1)
-                    G.voiceflag = False
-                else:
-                    self.play_audio("명령을 인식하지 못했습니다. 다시 시도해주세요.")
-            await asyncio.sleep(1)
-
-Vd = MicrophoneStream()
+            
+Vd = Voice()

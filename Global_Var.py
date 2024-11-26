@@ -1,6 +1,6 @@
 # global_vars.py
 import json
-
+from Global_Var import G
 class GlobalVars:
     instance = None  # 클래스 변수로 인스턴스 저장
     
@@ -25,6 +25,8 @@ class GlobalVars:
                 "stop" : 0,
                 "emergency":0
             }
+            cls.voiceflag = False
+            cls.pairflag = False
         return cls.instance
 
     def load_data(self):

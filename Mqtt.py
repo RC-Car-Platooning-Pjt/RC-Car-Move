@@ -7,7 +7,10 @@ import json
 from FB import add_log
 import warnings
 from queue import Queue
-from OpenAi import Ai 
+from OpenAi import Ai
+#from Voice import Vd
+
+
 warnings.filterwarnings('ignore')
 MQTT_NAME = G.data["NAME"]
 MQTT_BROKER = G.data["IP"]
@@ -44,11 +47,13 @@ class MQTTController:
                 self.flag = False
                 self.client.subscribe(MQTT_TOPIC)
                 self.queue = Queue()
+                G.pairflag = False
                 add_log(MQTT_NAME, "Paired off")
             elif cmd['state'] == "pairing":
                 self.client.unsubscribe(MQTT_TOPIC)
                 self.master = cmd['masternum']
                 self.flag = True
+                G.pairflag = True
                 self.client.subscribe(MQTT_TOPIC[0:-1] + str(self.master))
                 add_log(MQTT_NAME, "Paired on")
                 self.queue = Queue()
@@ -101,6 +106,7 @@ class MQTTController:
             asyncio.create_task(MC.Ultra())
             print("Distance Sensor started")
             asyncio.create_task(V.start_streaming(self.client))
+            #asyncio.create_task(Vd.run(self.client))
             # Keep the program running
             while True:
                 await asyncio.sleep(1)

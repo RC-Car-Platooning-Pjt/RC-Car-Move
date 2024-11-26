@@ -41,6 +41,7 @@ class VideoStreamer:
                     confidence = row['confidence']  # 신뢰도
                     if confidence > 0.8:
                         client.publish(G.data["TOPIC"] + "/master", self.convert[class_name])
+                        G.voiceflag = True
 
                 render_img = np.squeeze(results.render())
                 # OpenCV로 이미지를 JPEG로 인코딩
